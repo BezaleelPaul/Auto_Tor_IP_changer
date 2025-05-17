@@ -1,82 +1,96 @@
 # -*- coding: utf-8 -*-
-
 import time
 import os
 import subprocess
 
-
-
-
-
-
-
 try:
-
     import requests
-except Exception:
-    print('[+] python3 requests is not installed')
-    os.system('pip3 install requests')
-    os.system('pip3 install requests[socks]')
-    print('[!] python3 requests is installed ')
-try:
+except ImportError:
+    print('[+] python3-requests is not installed. Installing now...')
+    os.system('pip3 install requests requests[socks]')
+    import requests
 
-    check_tor = subprocess.check_output('which tor', shell=True)
-except subprocess.CalledProcessError:
+def ensure_tor_installed():
+    try:
+        subprocess.check_output('which tor', shell=True)
+    except subprocess.CalledProcessError:
+        print('[+] Tor is not installed. Installing...')
+        subprocess.call('sudo apt update', shell=True)
+        subprocess.call('sudo apt install tor -y', shell=True)
+        print('[!] Tor installed successfully.')
 
-    print('[+] tor is not installed !')
-    subprocess.check_output('sudo apt update',shell=True)
-    subprocess.check_output('sudo apt install tor -y',shell=True)
-    print('[!] tor is installed succesfully ')
+def start_tor():
+    try:
+        subprocess.call('service tor start', shell=True)
+    except:
+        try:
+            subprocess.call('systemctl start tor', shell=True)
+        except Exception as e:
+            print(f'[!] Could not start Tor service: {e}')
 
-os.system("clear")
+def reload_tor():
+    try:
+        subprocess.call('service tor reload', shell=True)
+    except:
+        try:
+            subprocess.call('systemctl reload tor', shell=True)
+        except Exception as e:
+            print(f'[!] Could not reload Tor service: {e}')
+
 def ma_ip():
-    url='http://checkip.amazonaws.com'
-    get_ip= requests.get(url,proxies=dict(http='socks5://127.0.0.1:9050',https='socks5://127.0.0.1:9050'))
-    return get_ip.text
+    url = 'http://checkip.amazonaws.com'
+    try:
+        get_ip = requests.get(url, proxies=dict(
+            http='socks5://127.0.0.1:9050',
+            https='socks5://127.0.0.1:9050'
+        ), timeout=10)
+        return get_ip.text.strip()
+    except Exception as e:
+        return f'[!] Failed to get IP: {e}'
 
 def change():
-    os.system("service tor reload")
-    print ('[+] Your IP has been Changed to : '+str(ma_ip()))
+    reload_tor()
+    print('[+] Your IP has been changed to:', ma_ip())
 
-print('''\033[1;32;40m \n
+def main():
+    ensure_tor_installed()
+    os.system("clear")
+    
+    print('''\033[1;32;40m
                 _          _______
-     /\        | |        |__   __|
-    /  \  _   _| |_ ___      | | ___  _ __
-   / /\ \| | | | __/ _ \     | |/ _ \| '__|
-  / ____ \ |_| | || (_) |    | | (_) | |
- /_/    \_\__,_|\__\___/     |_|\___/|_|
+     /\\        | |        |__   __|
+    /  \\  _   _| |_ ___      | | ___  _ __
+   / /\\ \\| | | | __/ _ \\     | |/ _ \\| '__|
+  / ____ \\ |_| | || (_) |    | | (_) | |
+ /_/    \\_\\__,_|\\__\\___/     |_|\\___/|_|
                 V 2.1
 from mrFD
 ''')
-print("\033[1;40;31m http://facebook.com/ninja.hackerz.kurdish/\n")
+    print("\033[1;40;31m http://facebook.com/ninja.hackerz.kurdish/\n")
+    
+    start_tor()
+    time.sleep(3)
+    print("\033[1;32;40m Set your SOCKS to 127.0.0.1:9050 \n")
+    
+    x = input("[+] Time delay to change IP in seconds [default=60] >> ") or "60"
+    lin = input("[+] How many times to change IP? (Enter 0 or leave blank for infinite) >> ") or "0"
 
-os.system("service tor start")
+    try:
+        delay = int(x)
+        lin = int(lin)
 
+        if lin == 0:
+            print("[*] Starting infinite IP change. Press Ctrl+C to stop.")
+            while True:
+                time.sleep(delay)
+                change()
+        else:
+            for _ in range(lin):
+                time.sleep(delay)
+                change()
 
+    except ValueError:
+        print("[!] Invalid input. Please enter valid numbers.")
 
-
-time.sleep(3)
-print("\033[1;32;40m change your  SOCKES to 127.0.0.1:9050 \n")
-os.system("service tor start")
-x = input("[+] time to change Ip in Sec [type=60] >> ")
-lin = input("[+] How many times do you want to change your IP? enter to infinite IP change] >> ") or "0"
-
-try:
-    lin = int(lin)
-
-    if lin == 0:
-        print("Starting infinite IP change. Press Ctrl+C to stop.")
-        while True:
-            try:
-                time.sleep(int(x))  # Assuming 'x' is defined earlier in your code
-                change()  # Assuming 'change()' is defined elsewhere
-            except KeyboardInterrupt:
-                print('\nAuto IP changer is closed.')
-                break
-    else:
-        for _ in range(lin):
-            time.sleep(int(x))  # Assuming 'x' is defined earlier in your code
-            change()  # Assuming 'change()' is defined elsewhere
-
-except ValueError:
-    print("Invalid input. Please enter a valid number.")
+if __name__ == "__main__":
+    main()
